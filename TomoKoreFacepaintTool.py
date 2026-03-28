@@ -1,6 +1,7 @@
 try:
     from PIL import Image, ImageCms
     from pyswizzle import nsw_deswizzle, nsw_swizzle
+    from pathlib import Path
     #import numpy as np
 except ImportError as e:
     print(f"An import error occurred: {e}")
@@ -30,7 +31,7 @@ while True:
     try:
         select = int(input("Select an option: "))
         if select == 1:
-            imagePath = input("Enter canvas filepath: ")
+            imagePath = Path(input("Enter canvas filepath: ").strip())
 
             with open(imagePath, 'rb') as file:
                 rawdata = file.read()
@@ -46,10 +47,11 @@ while True:
             img = img.convert()
             img = gammaedit(img)
             img.show()
-            savepath = imagePath.split('.')[0]+'OUTPUT'+'.png'
+            savepath = imagePath.with_name(imagePath.stem + "OUTPUT.png")
             img.save(savepath,'png')
+            print(f'Image file saved to {savepath}')
         elif select ==2:
-            imagePath = input("Enter png filepath: ")
+            imagePath = Path(input("Enter png filepath: ").strip())
             useSrgb = False
             while True:
                 try:
@@ -67,19 +69,23 @@ while True:
                 rawdata = file.read()
 
             img = Image.open(imagePath)
-            if not useSrgb:
-                img = gammaedit(img,2.2)
-            img = img.convert('RGBA')
-            convertImg = img.tobytes('raw')
-            savepath = imagePath.split('.')[0]+'OUTPUT'+'.canvas'
-            gob_w, gob_h = 1, 1
-            bytes_per_block = 4
-            swizzle_mode = 4
-            height, width = img.size
+            if img.size != (256,256):
+                print('Hey! This tool only supports 256x256 resolution images. Please use a different image.')
+            else:
+                if not useSrgb:
+                    img = gammaedit(img,2.2)
+                img = img.convert('RGBA')
+                convertImg = img.tobytes('raw')
+                savepath = imagePath.with_name(imagePath.stem + "OUTPUT.canvas")
+                gob_w, gob_h = 1, 1
+                bytes_per_block = 4
+                swizzle_mode = 4
+                height, width = img.size
 
-            linear = nsw_swizzle(convertImg,(width, height),(gob_w, gob_h),bytes_per_block,swizzle_mode)
-            with open(savepath, 'wb') as f:
-                f.write(bytes(linear))
+                linear = nsw_swizzle(convertImg,(width, height),(gob_w, gob_h),bytes_per_block,swizzle_mode)
+                with open(savepath, 'wb') as f:
+                    f.write(bytes(linear))
+                print(f'Canvas file saved to {savepath}')
         elif select == 3:
             print('Alright, see ya~')
             break
